@@ -35,7 +35,10 @@ const HotelDetail = () => {
     img.url.startsWith("http://")
       ? img.url.replace("http://", "https://")
       : img.url
-  ) || ["https://via.placeholder.com/400x300"];
+  ) || [
+    `https://source.unsplash.com/600x400/?hotel,room,miami&sig=${hotel.hotelCode}`,
+  ];
+
 
   return (
     <div className="p-6 flex flex-col md:flex-row gap-6">
