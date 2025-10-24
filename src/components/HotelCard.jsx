@@ -1,12 +1,17 @@
 import React from "react";
 
-
 const HotelCard = ({ option }) => {
-  // Imagen aleatoria si no viene
+  // Generar un número aleatorio basado en el hotelCode para tener consistencia
+  const randomId = option.hotelCode
+    ? option.hotelCode
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000
+    : Math.floor(Math.random() * 1000);
+
   const imageUrl =
     option.imageUrl ||
     option.media?.images?.[0]?.url ||
-    `https://source.unsplash.com/400x300/?hotel,room,building,miami&sig=${option.hotelCode}`;
+    `https://picsum.photos/seed/${option.hotelCode || randomId}/400/300`;
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border hover:shadow-2xl transition duration-300">
@@ -14,6 +19,12 @@ const HotelCard = ({ option }) => {
         src={imageUrl}
         alt={option.hotelName}
         className="w-full h-48 object-cover"
+        onError={(e) => {
+          // Fallback si la imagen falla
+          e.target.src = `https://placehold.co/400x300/e2e8f0/64748b?text=${encodeURIComponent(
+            option.hotelName?.slice(0, 20) || "Hotel"
+          )}`;
+        }}
       />
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-2">{option.hotelName}</h2>
