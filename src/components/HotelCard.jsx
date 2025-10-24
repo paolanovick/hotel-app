@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const HotelCard = ({ option }) => {
+  const navigate = useNavigate();
+
   // Generar un número aleatorio basado en el hotelCode para tener consistencia
   const randomId = option.hotelCode
     ? option.hotelCode
@@ -12,6 +15,13 @@ const HotelCard = ({ option }) => {
     option.imageUrl ||
     option.media?.images?.[0]?.url ||
     `https://picsum.photos/seed/${option.hotelCode || randomId}/400/300`;
+
+  const handleViewDetails = () => {
+    // Navegar a la página de detalles pasando el hotel completo
+    navigate(`/hotel/${option.hotelCode}`, {
+      state: { hotel: option },
+    });
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border hover:shadow-2xl transition duration-300">
@@ -29,7 +39,7 @@ const HotelCard = ({ option }) => {
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-2">{option.hotelName}</h2>
         <p className="text-gray-600 mb-1">
-          Habitación: {option.rooms[0]?.code}
+          Habitación: {option.rooms[0]?.code || "N/A"}
         </p>
         <p className="text-gray-800 font-semibold mb-2">
           Precio: {option.price.currency} {option.price.gross.toFixed(2)}
@@ -41,7 +51,10 @@ const HotelCard = ({ option }) => {
         >
           {option.cancelPolicy.refundable ? "Reembolsable" : "No reembolsable"}
         </p>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+        <button
+          onClick={handleViewDetails}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full"
+        >
           Más detalles
         </button>
       </div>

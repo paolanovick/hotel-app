@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import HotelCard from "./HotelCard";
 
 const HotelList = () => {
@@ -9,30 +9,34 @@ const HotelList = () => {
   const [nextUrl, setNextUrl] = useState(null);
   const [prevUrl, setPrevUrl] = useState(null);
 
-  const fetchHotels = async (url = null) => {
-    setLoading(true);
-    try {
-      const apiUrl =
-        url ||
-        `https://travelconnect.com.ar/tgx/search?country=US&city=Miami&check_in=2025-10-28&check_out=2025-10-29&ages=30,30&currency=USD&language=es&client=travelspirit&access=32146&page=${page}&per_page=20`;
-      const res = await fetch(apiUrl);
-      const data = await res.json();
-      setHotels(data.options || []);
-      setNextUrl(data.meta.pagination.next_url || null);
-      setPrevUrl(data.meta.pagination.prev_url || null);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ Usar useCallback
+  const fetchHotels = useCallback(
+    async (url = null) => {
+      setLoading(true);
+      try {
+        const apiUrl =
+          url ||
+          `https://travelconnect.com.ar/tgx/search?country=US&city=Miami&check_in=2025-10-28&check_out=2025-10-29&ages=30,30&currency=USD&language=es&client=travelspirit&access=32146&page=${page}&per_page=20`;
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        setHotels(data.options || []);
+        setNextUrl(data.meta?.pagination?.next_url || null);
+        setPrevUrl(data.meta?.pagination?.prev_url || null);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page]
+  ); // ✅ Incluir page como dependencia
 
   useEffect(() => {
     fetchHotels();
-  }, [page]);
+  }, [fetchHotels]); // ✅ Ahora está memorizada
 
   const filteredHotels = hotels.filter((h) =>
-    h.hotelName.toLowerCase().includes(search.toLowerCase())
+    h.hotelName?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (

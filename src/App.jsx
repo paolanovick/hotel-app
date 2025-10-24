@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HotelCard from "./components/HotelCard";
 import HotelDetail from "./components/HotelDetail";
@@ -17,13 +17,13 @@ const App = () => {
   const getDefaultDates = () => {
     const today = new Date();
     const checkIn = new Date(today);
-    checkIn.setDate(today.getDate() + 30); // 30 días desde hoy
+    checkIn.setDate(today.getDate() + 30);
 
     const checkOut = new Date(checkIn);
-    checkOut.setDate(checkIn.getDate() + 1); // 1 noche
+    checkOut.setDate(checkIn.getDate() + 1);
 
     const formatDate = (date) => {
-      return date.toISOString().split("T")[0]; // YYYY-MM-DD
+      return date.toISOString().split("T")[0];
     };
 
     return {
@@ -34,63 +34,68 @@ const App = () => {
 
   const [dates, setDates] = useState(getDefaultDates());
 
-  const fetchHotels = async (url = null) => {
-    setLoading(true);
-    setError(null);
-    setWarnings([]);
+  // ✅ Usar useCallback para memorizar la función
+  const fetchHotels = useCallback(
+    async (url = null) => {
+      setLoading(true);
+      setError(null);
+      setWarnings([]);
 
-    try {
-      const apiUrl =
-        url ||
-        `https://travelconnect.com.ar/tgx/search?country=US&city=Miami&check_in=${dates.checkIn}&check_out=${dates.checkOut}&ages=30,30&currency=USD&language=es&client=travelspirit&access=32146&page=${page}&per_page=20`;
+      try {
+        const apiUrl =
+          url ||
+          `https://travelconnect.com.ar/tgx/search?country=US&city=Miami&check_in=${dates.checkIn}&check_out=${dates.checkOut}&ages=30,30&currency=USD&language=es&client=travelspirit&access=32146&page=${page}&per_page=20`;
 
-      console.log("🔍 Buscando con URL:", apiUrl);
+        console.log("🔍 Buscando con URL:", apiUrl);
 
-      const res = await fetch(apiUrl);
+        const res = await fetch(apiUrl);
 
-      if (!res.ok) {
-        throw new Error(
-          `Error ${res.status}: ${res.statusText || "Error al cargar hoteles"}`
-        );
+        if (!res.ok) {
+          throw new Error(
+            `Error ${res.status}: ${
+              res.statusText || "Error al cargar hoteles"
+            }`
+          );
+        }
+
+        const data = await res.json();
+
+        console.log("📦 Respuesta de la API:", data);
+
+        if (data.errors && data.errors.length > 0) {
+          const errorMessages = data.errors
+            .map((e) => e.description)
+            .join(". ");
+          setError(errorMessages);
+        }
+
+        if (data.warnings && data.warnings.length > 0) {
+          setWarnings(data.warnings);
+        }
+
+        setHotels(data.options || []);
+        setNextUrl(data.meta?.pagination?.next_url || null);
+        setPrevUrl(data.meta?.pagination?.prev_url || null);
+
+        if (!data.options || data.options.length === 0) {
+          setError(
+            "No se encontraron hoteles disponibles para estas fechas. Intenta con fechas diferentes."
+          );
+        }
+      } catch (err) {
+        console.error("❌ Error completo:", err);
+        setError(err.message);
+        setHotels([]);
+      } finally {
+        setLoading(false);
       }
-
-      const data = await res.json();
-
-      console.log("📦 Respuesta de la API:", data);
-
-      // Verificar si hay errores en la respuesta
-      if (data.errors && data.errors.length > 0) {
-        const errorMessages = data.errors.map((e) => e.description).join(". ");
-        setError(errorMessages);
-      }
-
-      // Guardar warnings para mostrar al usuario
-      if (data.warnings && data.warnings.length > 0) {
-        setWarnings(data.warnings);
-      }
-
-      setHotels(data.options || []);
-      setNextUrl(data.meta?.pagination?.next_url || null);
-      setPrevUrl(data.meta?.pagination?.prev_url || null);
-
-      // Si no hay hoteles, mostrar mensaje informativo
-      if (!data.options || data.options.length === 0) {
-        setError(
-          "No se encontraron hoteles disponibles para estas fechas. Intenta con fechas diferentes."
-        );
-      }
-    } catch (err) {
-      console.error("❌ Error completo:", err);
-      setError(err.message);
-      setHotels([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [dates.checkIn, dates.checkOut, page]
+  ); // ✅ Incluir todas las dependencias
 
   useEffect(() => {
     fetchHotels();
-  }, [page]);
+  }, [fetchHotels]); // ✅ Ahora fetchHotels está memorizada
 
   const filteredHotels = hotels.filter((h) =>
     h.hotelName?.toLowerCase().includes(search.toLowerCase())
@@ -101,7 +106,7 @@ const App = () => {
   };
 
   const handleSearch = () => {
-    setPage(1); // Resetear a página 1
+    setPage(1);
     fetchHotels();
   };
 
