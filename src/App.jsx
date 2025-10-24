@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HotelCard from "./components/HotelCard";
 import HotelDetail from "./components/HotelDetail";
+import Header from "./components/Header";
 
 const App = () => {
   const [hotels, setHotels] = useState([]);
@@ -13,7 +14,6 @@ const App = () => {
   const [nextUrl, setNextUrl] = useState(null);
   const [prevUrl, setPrevUrl] = useState(null);
 
-  // Fechas dinámicas: 30 días desde hoy
   const getDefaultDates = () => {
     const today = new Date();
     const checkIn = new Date(today);
@@ -22,9 +22,7 @@ const App = () => {
     const checkOut = new Date(checkIn);
     checkOut.setDate(checkIn.getDate() + 1);
 
-    const formatDate = (date) => {
-      return date.toISOString().split("T")[0];
-    };
+    const formatDate = (date) => date.toISOString().split("T")[0];
 
     return {
       checkIn: formatDate(checkIn),
@@ -34,7 +32,6 @@ const App = () => {
 
   const [dates, setDates] = useState(getDefaultDates());
 
-  // ✅ Usar useCallback para memorizar la función
   const fetchHotels = useCallback(
     async (url = null) => {
       setLoading(true);
@@ -49,35 +46,25 @@ const App = () => {
         console.log("🔍 Buscando con URL:", apiUrl);
 
         const res = await fetch(apiUrl);
-
-        if (!res.ok) {
+        if (!res.ok)
           throw new Error(
             `Error ${res.status}: ${
               res.statusText || "Error al cargar hoteles"
             }`
           );
-        }
 
         const data = await res.json();
-
         console.log("📦 Respuesta de la API:", data);
 
-        if (data.errors && data.errors.length > 0) {
-          const errorMessages = data.errors
-            .map((e) => e.description)
-            .join(". ");
-          setError(errorMessages);
-        }
-
-        if (data.warnings && data.warnings.length > 0) {
-          setWarnings(data.warnings);
-        }
+        if (data.errors?.length)
+          setError(data.errors.map((e) => e.description).join(". "));
+        if (data.warnings?.length) setWarnings(data.warnings);
 
         setHotels(data.options || []);
         setNextUrl(data.meta?.pagination?.next_url || null);
         setPrevUrl(data.meta?.pagination?.prev_url || null);
 
-        if (!data.options || data.options.length === 0) {
+        if (!data.options?.length) {
           setError(
             "No se encontraron hoteles disponibles para estas fechas. Intenta con fechas diferentes."
           );
@@ -91,18 +78,19 @@ const App = () => {
       }
     },
     [dates.checkIn, dates.checkOut, page]
-  ); // ✅ Incluir todas las dependencias
+  );
 
   useEffect(() => {
     fetchHotels();
-  }, [fetchHotels]); // ✅ Ahora fetchHotels está memorizada
+  }, [fetchHotels]);
 
   const filteredHotels = hotels.filter((h) =>
     h.hotelName?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDateChange = (field, value) => {
-    setDates((prev) => ({ ...prev, [field]: value }));
+  // ✅ Ajuste para ESLint: field y value definidos correctamente
+  const handleDateChange = (field, fieldValue) => {
+    setDates((prev) => ({ ...prev, [field]: fieldValue }));
   };
 
   const handleSearch = () => {
@@ -112,6 +100,13 @@ const App = () => {
 
   return (
     <Router>
+      <Header
+        onSearch={({ city, checkIn, checkOut }) => {
+          setSearch(city);
+          setDates({ checkIn, checkOut });
+          handleSearch();
+        }}
+      />
       <Routes>
         <Route
           path="/"
